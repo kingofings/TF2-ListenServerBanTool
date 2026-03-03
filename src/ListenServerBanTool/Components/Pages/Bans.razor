@@ -1,0 +1,103 @@
+﻿@page "/bans"
+@using Data.Bans
+@using Data.Model
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>Banned Players</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Ban Management</h2>
+        <a href="/" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+    </div>
+
+    <div class="card shadow-sm border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Banned Players List</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Player Name</th>
+                        <th>Steam ID</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (BannedPlayers == null)
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center py-4">
+                                <div class="spinner-border text-danger" role="status"></div>
+                                <div class="mt-2">Loading database...</div>
+                            </td>
+                        </tr>
+                    }
+                    else if (!BannedPlayers.Any())
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">No banned players found in database.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var player in BannedPlayers)
+                        {
+                            <tr>
+                                <td><strong>@player.Name</strong></td>
+                                <td><code>@player.SteamId</code></td>
+                                <td class="text-end">
+                                    <button class="btn btn-success btn-sm"
+                                            @onclick="() => HandleUnban(player.SteamId)"
+                                            title="Unban Player">
+                                        <i class="bi bi-unlock-fill"></i> Unban
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject] public required IBanManager BanManager { get; set; }
+    [Inject] public required ILogger<Bans> Logger { get; set; }
+
+    private IEnumerable<BannedPlayer>? BannedPlayers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        BanManager.OnBansUpdated += RefreshList;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        BannedPlayers = await BanManager.GetBannedPlayersAsync();
+    }
+
+    private async void RefreshList()
+    {
+        await InvokeAsync(async () =>
+        {
+            await LoadData();
+            StateHasChanged();
+        });
+    }
+
+    private async Task HandleUnban(string steamId)
+    {
+        await BanManager.RemoveBanAsync(steamId);
+        Logger.LogInformation("Manual unban triggered for {SteamId}", steamId);
+    }
+
+    public void Dispose()
+    {
+        BanManager.OnBansUpdated -= RefreshList;
+    }
+}

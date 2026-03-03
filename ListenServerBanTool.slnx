@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/Data/Data.csproj" />
+  <Project Path="src/ListenServerBanTool/ListenServerBanTool.csproj" />
+</Solution>

@@ -1,0 +1,90 @@
+﻿@page "/"
+@using Data.Bans
+@using Data.Model
+@using Data.Players.PlayerTracker
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>Player Dashboard</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Player Name</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!_activePlayers?.Any() ?? true)
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">No players currently online.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var player in _activePlayers!)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@player.Name (@player.SteamId)</strong>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill bg-success">Online</span>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="() => ConfirmBan(player)"
+                                            title="Ban Player">
+                                        <i class="bi bi-hammer"></i> Ban
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Inject]
+    public required IBanManager BanManager { get; set; }
+
+    [Inject]
+    public required IPlayerTracker PlayerTracker { get; set; }
+
+    [Inject]
+    public required ILogger<Home> Logger { get; set; }
+
+    private IEnumerable<ActivePlayer>? _activePlayers;
+
+    protected override void OnInitialized()
+    {
+        PlayerTracker.OnTrackedPlayersUpdate += Update;
+        _activePlayers = PlayerTracker.GetAllActivePlayers();
+    }
+
+    private async Task ConfirmBan(ActivePlayer player)
+    {
+        await BanManager.AddBanAsync(player.SteamId, player.Name ?? "unnamed");
+
+        Logger.LogInformation("{Player} has been banned from the dashboard.", player.Name ?? "unnamed");
+    }
+
+    private async void Update()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        PlayerTracker.OnTrackedPlayersUpdate -= Update;
+    }
+}
