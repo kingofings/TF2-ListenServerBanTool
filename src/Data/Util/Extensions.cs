@@ -32,14 +32,6 @@ public static class Extensions
         };
     }
 
-    public static BannedPlayersImport ToBannedPlayersImport(this IEnumerable<BannedPlayer> bannedPlayers)
-    {
-        return new BannedPlayersImport
-        {
-            BannedPlayers = bannedPlayers.Select(x => x.ToBannedPlayerJson()).ToList()
-        };
-    }
-
     public static IEnumerable<BannedPlayer> ToBannedPlayers(this BannedPlayersImport bannedPlayersImport)
     {
         return bannedPlayersImport.BannedPlayers.Select(x => x.ToBannedPlayer()).ToList();
