@@ -1,7 +1,9 @@
 ﻿
 using CoreRCON;
 using CoreRCON.Parsers.Standard;
+using Data.RconClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -11,6 +13,7 @@ namespace Data.Listener;
 public sealed class ListenerService : IListenerService
 {
     private readonly ILogger<ListenerService> _logger;
+    private readonly IRconClient _rconClient;
     private LogReceiver? _logReceiver;
 
     public event EventHandler<ChatMessage>? OnChatMessageReceived;
@@ -18,9 +21,10 @@ public sealed class ListenerService : IListenerService
     public event EventHandler<PlayerDisconnected>? OnPlayerDisconnected;
     public event EventHandler<NameChange>? OnPlayerNameChanged;
 
-    public ListenerService(ILogger<ListenerService> logger)
+    public ListenerService(ILogger<ListenerService> logger, IRconClient rconClient)
     {
         _logger = logger;
+        _rconClient = rconClient;
     }
 
     public async Task StartServiceAsync()
@@ -94,14 +98,11 @@ public sealed class ListenerService : IListenerService
     }
 
     // This should really not be here but whatever
-    private void StartTF2(string listenIp, int listenPort)
+    private async void StartTF2(string listenIp, int listenPort)
     {
-
-
-
         if (!OperatingSystem.IsWindows())
         {
-            _logger.LogError($"Platfrom does not support automatic launch of tf2. please launch tf2 with the following launch options:\n" +
+            _logger.LogError($"Automatic launch of tf2 not supported on this platform at the moment. Please launch tf2 with the following launch options:\n" +
                 $"-usercon +log on +logaddress_add {listenIp}:{listenPort} +rcon_password 1234 +ip 0.0.0.0 +hostport 27015");
             return;
         }
@@ -111,18 +112,51 @@ public sealed class ListenerService : IListenerService
         if (process.Length > 0)
         {
             _logger.LogWarning($"TF2 Already Launched. Make sure you have the following launch options set:\n" +
-                $"-usercon +log on +logaddress_add {listenIp}:{listenPort} +rcon_password 1234 +ip 0.0.0.0 +hostport 27015");
+                $"-usercon +log on +rcon_password 1234 +ip 0.0.0.0 +hostport 27015");
+
+            // Attempt to set log address via RCON in case TF2 has the minimum required launch options but is missing the log address
+            await _rconClient.AddLogAddressAsync(listenIp, listenPort);
             return;
         }
 
 
         var rawArgs = $"-applaunch 440 -usercon +log on +logaddress_add {listenIp}:{listenPort} +rcon_password 1234 +ip 0.0.0.0 +hostport 27015";
 
+        var steamInstallDir = GetSteamInstallDir();
+
+        if (steamInstallDir is null)
+        {
+            _logger.LogCritical("FAILED TO FIND STEAM INSTALL DIR!");
+            return;
+        }
+
+
         Process.Start(new ProcessStartInfo
         {
-            FileName = @"C:\Program Files (x86)\Steam\steam.exe",
+            FileName = Path.Combine(steamInstallDir, "steam.exe"),
             Arguments = rawArgs,
             UseShellExecute = false,
         });
+    }
+
+    // This should really not be here but whatever
+    private string? GetSteamInstallDir()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            _logger.LogError("Automatic detection of Steam install directory is only supported on Windows at the moment.");
+            return null;
+        }
+        var path = @"SOFTWARE\Valve\Steam";
+
+        using var key = Registry.LocalMachine.OpenSubKey(path) ??
+            Registry.CurrentUser.OpenSubKey(path);
+
+        if (key is null)
+        {
+            return null;
+        }
+
+        return key.GetValue("InstallPath") as string;
     }
 }
