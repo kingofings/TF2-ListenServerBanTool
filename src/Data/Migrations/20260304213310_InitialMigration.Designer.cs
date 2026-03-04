@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(BanContext))]
-    [Migration("20260304203152_InitialMigration")]
+    [Migration("20260304213310_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -24,16 +24,13 @@ namespace Data.Migrations
                     b.Property<string>("SteamId")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsBanned")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("SteamId");
 
-                    b.ToTable("Players");
+                    b.ToTable("BannedPlayers");
                 });
 #pragma warning restore 612, 618
         }

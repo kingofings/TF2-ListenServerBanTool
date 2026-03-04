@@ -21,16 +21,13 @@ namespace Data.Migrations
                     b.Property<string>("SteamId")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsBanned")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("SteamId");
 
-                    b.ToTable("Players");
+                    b.ToTable("BannedPlayers");
                 });
 #pragma warning restore 612, 618
         }
