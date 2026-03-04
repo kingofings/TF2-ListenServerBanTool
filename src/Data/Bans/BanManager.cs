@@ -158,6 +158,7 @@ public sealed class BanManager : IBanManager
     {
         if (await IsPlayerBannedAsync(connectedPlayer.Player.SteamId))
         {
+            // We kick on purpose to waste the bots time and resources, as they will likely just try to reconnect.
             await _client.KickPlayerAsync(connectedPlayer.Player.ClientId);
         }
     }
