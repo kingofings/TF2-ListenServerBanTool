@@ -2,7 +2,7 @@
 using Data.Entities;
 using Data.Listener;
 using Data.Model;
-using Data.Players.PlayerTracker;
+using Data.PlayerTracker;
 using Data.RconClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,6 +37,14 @@ public sealed class BanManager : IBanManager
 
     public async Task AddBanAsync(string steamId, string name = "none available")
     {
+        var activePlayer = _playerTracker.GetPlayer(steamId);
+
+        if (activePlayer is not null && IsPlayerImmune(activePlayer))
+        {
+            _logger.LogWarning("Attempted to ban player with Steam ID {SteamId}, but player is immune.", steamId);
+            return;
+        }
+
         using var scope = _scopeFactory.CreateScope();
         var _context = scope.ServiceProvider.GetRequiredService<BanContext>();
 
@@ -65,8 +73,6 @@ public sealed class BanManager : IBanManager
         AddToBanCache(steamId, name);
         OnBansUpdated?.Invoke();
         _logger.LogInformation("Player with Steam ID {SteamId} has been banned.", steamId);
-
-        var activePlayer = _playerTracker.GetPlayer(player.SteamId);
 
         if (activePlayer is not null)
         {
@@ -189,5 +195,10 @@ public sealed class BanManager : IBanManager
         }
 
         return false;
+    }
+
+    private bool IsPlayerImmune(ActivePlayer player)
+    {
+        return player.IsImmune;
     }
 }

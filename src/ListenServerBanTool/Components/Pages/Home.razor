@@ -1,7 +1,7 @@
 ﻿@page "/"
 @using Data.Bans
 @using Data.Model
-@using Data.Players.PlayerTracker
+@using Data.PlayerTracker
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -14,7 +14,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Player Name</th>
-                        <th>Status</th>
+                        <th class="text-center">Immunity</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -33,11 +33,19 @@
                                 <td>
                                     <strong>@player.Name (@player.SteamId)</strong>
                                 </td>
-                                <td>
-                                    <span class="badge rounded-pill bg-success">Online</span>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill @(player.IsImmune ? "bg-success" : "bg-danger")">
+                                        @(player.IsImmune ? "Immune" : "Bannable")
+                                    </span>
                                 </td>
                                 <td class="text-end">
                                     <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="() => SetPlayerImmunity(player, !player.IsImmune)"
+                                            title="Toggle Immunity">
+                                        <i class="bi bi-shield-lock"></i> Toggle Immunity
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            disabled="@player.IsImmune"
                                             @onclick="() => ConfirmBan(player)"
                                             title="Ban Player">
                                         <i class="bi bi-hammer"></i> Ban
@@ -76,6 +84,12 @@
         await BanManager.AddBanAsync(player.SteamId, player.Name ?? "unnamed");
 
         Logger.LogInformation("{Player} has been banned from the dashboard.", player.Name ?? "unnamed");
+    }
+
+    private async Task SetPlayerImmunity(ActivePlayer player, bool isImmune)
+    {
+        await PlayerTracker.SetPlayerImmunityAsync(player.SteamId, isImmune);
+        Logger.LogInformation("{Player} immunity set to {Immunity}.", player.Name ?? "unnamed", isImmune);
     }
 
     private async void Update()

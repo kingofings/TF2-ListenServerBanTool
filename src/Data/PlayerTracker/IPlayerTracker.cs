@@ -1,6 +1,6 @@
 ﻿using Data.Model;
 
-namespace Data.Players.PlayerTracker;
+namespace Data.PlayerTracker;
 
 public interface IPlayerTracker
 {
@@ -17,6 +17,13 @@ public interface IPlayerTracker
     /// <param name="steamId"></param>
     /// <returns></returns>
     public bool RemovePlayer(string steamId);
+
+    /// <summary>
+    /// Set the immunity status of a player.
+    /// </summary>
+    /// <param name="steamId"></param>
+    /// <param name="isImmune"></param>
+    public Task SetPlayerImmunityAsync(string steamId, bool isImmune);
 
     /// <summary>
     /// Checks if a player may be being impersonated, super basic

@@ -1,8 +1,10 @@
 ﻿using CoreRCON.Parsers.Standard;
 using Data.Listener;
 using Data.Model;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Data.Players.PlayerTracker;
+namespace Data.PlayerTracker;
 
 public sealed class PlayerTracker : IPlayerTracker
 {
@@ -42,6 +44,16 @@ public sealed class PlayerTracker : IPlayerTracker
         _activePlayers.RemoveWhere(p => p.SteamId == steamId);
         OnTrackedPlayersUpdate?.Invoke();
         return true;
+    }
+
+    public async Task SetPlayerImmunityAsync(string steamId, bool isImmune)
+    {
+        var player = _activePlayers.SingleOrDefault(p => p.SteamId == steamId);
+        if (player is not null)
+        {
+            player.IsImmune = isImmune;
+            OnTrackedPlayersUpdate?.Invoke();
+        }
     }
 
     public ActivePlayer? GetPlayer(string steamId)
