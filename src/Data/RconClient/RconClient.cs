@@ -26,7 +26,7 @@ public sealed class RconClient : IRconClient
                 await _rcon.ConnectAsync();
             }
 
-            await _rcon.SendCommandAsync($"kickid {userId} Connection closing.");
+            await _rcon.SendCommandAsync($"kickid {userId} Connection closing");
         }
         catch (Exception ex)
         {
