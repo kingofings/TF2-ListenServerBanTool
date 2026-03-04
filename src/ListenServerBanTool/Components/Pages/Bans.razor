@@ -1,6 +1,10 @@
 ﻿@page "/bans"
 @using Data.Bans
 @using Data.Model
+@using Data.Model.Export
+@using Data.Model.Import
+@using Data.Util
+@using System.Text.Json
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -9,7 +13,16 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Ban Management</h2>
-        <a href="/" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+        <div>
+            <button class="btn btn-outline-primary btn-sm me-2" @onclick="ExportBans">
+                <i class="bi bi-download"></i> Export Bans
+            </button>
+            <label class="btn btn-outline-warning btn-sm me-2 mb-0">
+                <i class="bi bi-upload"></i> Import Bans
+                <InputFile OnChange="ImportBans" style="display: none;" />
+            </label>
+            <a href="/" class="btn btn-secondary btn-sm">Back to Dashboard</a>
+        </div>
     </div>
 
     <div class="card shadow-sm border-danger">
@@ -65,8 +78,14 @@
 </div>
 
 @code {
-    [Inject] public required IBanManager BanManager { get; set; }
-    [Inject] public required ILogger<Bans> Logger { get; set; }
+    [Inject]
+    public required IBanManager BanManager { get; set; }
+
+    [Inject] 
+    public required ILogger<Bans> Logger { get; set; }
+
+    [Inject] 
+    public required IJSRuntime JS { get; set; }
 
     private IEnumerable<BannedPlayer>? BannedPlayers;
 
@@ -94,6 +113,42 @@
     {
         await BanManager.RemoveBanAsync(steamId);
         Logger.LogInformation("Manual unban triggered for {SteamId}", steamId);
+    }
+
+    private async Task ExportBans()
+    {
+        if (BannedPlayers is null || !BannedPlayers.Any()) return;
+
+        var json = JsonSerializer.Serialize<BannedPlayersExport>(BannedPlayers.ToBannedPlayersExport(), new JsonSerializerOptions { WriteIndented = true });
+        var fileName = $"banlist_{DateTime.Now:yyyyMMdd}.json";
+
+        await JS.InvokeVoidAsync("downloadFile", fileName, "application/json", json);
+    }
+
+    private async Task ImportBans(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            using var stream = e.File.OpenReadStream();
+            var imported = await JsonSerializer.DeserializeAsync<BannedPlayersImport>(stream);
+
+            if (imported is null)
+            {
+                return;
+            }
+
+            if (await BanManager.ImportBansAsync(imported))
+            {
+                Logger.LogInformation("Successfully imported Bans.");
+                await JS.InvokeVoidAsync("alert", "Successfully imported bans");
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to import ban list.");
+            await JS.InvokeVoidAsync("alert", $"Import Failed: Ensure the file is a valid JSON ban list.");
+        }
     }
 
     public void Dispose()

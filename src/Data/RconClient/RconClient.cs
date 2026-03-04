@@ -1,8 +1,6 @@
 ﻿using CoreRCON;
 using Microsoft.Extensions.Logging;
 using System.Net;
-using System.Text;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Data.RconClient;
 

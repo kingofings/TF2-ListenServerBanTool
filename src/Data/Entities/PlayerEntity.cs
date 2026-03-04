@@ -10,6 +10,4 @@ public class PlayerEntity
     public string SteamId { get; set; } = null!;
 
     public string Name { get; set; } = null!;
-
-    public bool IsBanned { get; set; }
 }

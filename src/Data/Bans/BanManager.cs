@@ -2,8 +2,11 @@
 using Data.Entities;
 using Data.Listener;
 using Data.Model;
+using Data.Model.Export;
+using Data.Model.Import;
 using Data.PlayerTracker;
 using Data.RconClient;
+using Data.Util;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -48,25 +51,18 @@ public sealed class BanManager : IBanManager
         using var scope = _scopeFactory.CreateScope();
         var _context = scope.ServiceProvider.GetRequiredService<BanContext>();
 
-        var player = await _context.Players
+        var player = await _context.BannedPlayers
             .SingleOrDefaultAsync(p => p.SteamId == steamId);
 
-        if (player == null)
+        if (player is null)
         {
             player = new PlayerEntity
             {
                 SteamId = steamId,
-                Name = name,
-                IsBanned = true
+                Name = name
             };
-            _context.Players.Add(player);
+            _context.BannedPlayers.Add(player);
         }
-        else
-        {
-            player.IsBanned = true;
-            _context.Players.Update(player);
-        }
-
 
         await _context.SaveChangesAsync();
 
@@ -85,7 +81,7 @@ public sealed class BanManager : IBanManager
         using var scope = _scopeFactory.CreateScope();
         var _context = scope.ServiceProvider.GetRequiredService<BanContext>();
 
-        var player = await _context.Players
+        var player = await _context.BannedPlayers
             .FirstOrDefaultAsync(p => p.SteamId == steamId);
 
         if (player is null)
@@ -94,7 +90,7 @@ public sealed class BanManager : IBanManager
             return;
         }
 
-        player.IsBanned = false;
+        _context.BannedPlayers.Remove(player);
         await _context.SaveChangesAsync();
 
         RemoveFromBanCache(steamId);
@@ -102,13 +98,58 @@ public sealed class BanManager : IBanManager
         _logger.LogInformation("Player with Steam ID {SteamId} has been unbanned.", steamId);
     }
 
+    public async Task<bool> ImportBansAsync(BannedPlayersImport bannedPlayersImport)
+    {
+        var importedBans = bannedPlayersImport.ToBannedPlayers();
+
+        using var scope = _scopeFactory.CreateScope();
+        var _context = scope.ServiceProvider.GetRequiredService<BanContext>();
+
+        var existingBanIds = await _context
+            .BannedPlayers
+            .Select(x => x.SteamId)
+            .ToListAsync();
+
+        var newBans = importedBans
+            .Where(x => !existingBanIds.Contains(x.SteamId, StringComparer.OrdinalIgnoreCase))
+            .Select(x => new PlayerEntity
+            {
+                SteamId = x.SteamId,
+                Name = x.Name ?? "none provided"
+            })
+            .ToList();
+
+        if (newBans.Any())
+        {
+            await _context.BannedPlayers.AddRangeAsync(newBans);
+            await _context.SaveChangesAsync();
+
+            OnBansUpdated?.Invoke();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public async Task<BannedPlayersExport> ExportBansAsync()
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var _context = scope.ServiceProvider.GetRequiredService<BanContext>();
+
+        var bans = await _context.BannedPlayers
+            .Select(x => new BannedPlayer { SteamId = x.SteamId, Name = x.Name })
+            .ToListAsync();
+
+        return bans.ToBannedPlayersExport();
+    }
+
     public async Task<IEnumerable<BannedPlayer>> GetBannedPlayersAsync()
     {
         using var scope = _scopeFactory.CreateScope();
         var _context = scope.ServiceProvider.GetRequiredService<BanContext>();
 
-        return await _context.Players
-            .Where(x => x.IsBanned == true)
+        return await _context.BannedPlayers
             .Select(x => new BannedPlayer { SteamId = x.SteamId, Name = x.Name })
             .ToListAsync();
     }
@@ -179,7 +220,7 @@ public sealed class BanManager : IBanManager
         using var scope = _scopeFactory.CreateScope();
         var _context = scope.ServiceProvider.GetRequiredService<BanContext>();
 
-        var player = _context.Players
+        var player = _context.BannedPlayers
             .AsNoTracking()
             .SingleOrDefault(p => p.SteamId == steamId);
 
@@ -188,13 +229,8 @@ public sealed class BanManager : IBanManager
             return false;
         }
 
-        if (player.IsBanned)
-        {
-            AddToBanCache(steamId, player.Name);
-            return true;
-        }
-
-        return false;
+        AddToBanCache(steamId, player.Name);
+        return true;
     }
 
     private bool IsPlayerImmune(ActivePlayer player)

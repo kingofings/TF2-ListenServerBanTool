@@ -1,8 +1,6 @@
 ﻿using CoreRCON.Parsers.Standard;
 using Data.Listener;
 using Data.Model;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Data.PlayerTracker;
 

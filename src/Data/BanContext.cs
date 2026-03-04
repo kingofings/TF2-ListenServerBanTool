@@ -9,5 +9,5 @@ public sealed class BanContext : DbContext
     {
     }
 
-    public DbSet<PlayerEntity> Players { get; set; }
+    public DbSet<PlayerEntity> BannedPlayers { get; set; }
 }
