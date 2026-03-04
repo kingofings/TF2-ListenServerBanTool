@@ -176,7 +176,7 @@ public sealed class BanManager : IBanManager
         if (player is not null && (DateTime.UtcNow - player.ConnectTime).TotalMinutes < 2)
         {
             var random = new Random();
-            await Task.Delay(random.Next(500, 3000)); // Random delay between 0.5 and 3 seconds
+            await Task.Delay(random.Next(500, 3000));
             await AddBanAsync(player.SteamId, nameChange.Player.Name);
         }
     }
@@ -187,7 +187,7 @@ public sealed class BanManager : IBanManager
         if (message.Message.Contains("t.me") || message.Message.Contains("tf2publicserver"))
         { 
             var random = new Random();
-            await Task.Delay(random.Next(500, 3000)); // Random delay between 0.5 and 3 seconds
+            await Task.Delay(random.Next(500, 3000));
             await AddBanAsync(message.Player.SteamId, message.Player.Name);
         }
     }
