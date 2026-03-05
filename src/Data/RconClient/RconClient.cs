@@ -1,18 +1,32 @@
 ﻿using CoreRCON;
+using Data.Model.Settings;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net;
 
 namespace Data.RconClient;
 
 public sealed class RconClient : IRconClient
 {
+    private readonly RconSettings _settings;
     private readonly RCON _rcon;
     private readonly ILogger<RconClient> _logger;
 
-    public RconClient(ILogger<RconClient> logger)
+    public RconClient(ILogger<RconClient> logger, IOptions<RconSettings> options)
     {
-        _rcon = new RCON(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 27015), "1234");
+        _settings = options.Value;
+        _rcon = new RCON(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 27015), _settings.Password);
         _logger = logger;
+    }
+
+    public bool CheckIfPasswordWasChanged()
+    {
+        if (_settings.Password == "changeme")
+        {
+            _logger.LogError("RCON password is still set to the default value. Please change it to a secure password in 'appsettings.json' in the 'RconSettings' section and restart the application.");
+            return true;
+        }
+        return false;
     }
 
     public async Task KickPlayerAsync(int userId)
@@ -54,5 +68,10 @@ public sealed class RconClient : IRconClient
                     "Alternatively close tf2 and restart this program and every launch option required should be set for you automatically.");
         }
 
+    }
+
+    public string GetPassword()
+    {
+        return _settings.Password;
     }
 }

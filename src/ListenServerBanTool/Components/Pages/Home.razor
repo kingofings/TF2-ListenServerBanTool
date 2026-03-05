@@ -40,13 +40,13 @@
                                 </td>
                                 <td class="text-end">
                                     <button class="btn btn-outline-danger btn-sm"
-                                            @onclick="() => SetPlayerImmunity(player, !player.IsImmune)"
+                                            @onclick="() => SetPlayerImmunityAsync(player, !player.IsImmune)"
                                             title="Toggle Immunity">
                                         <i class="bi bi-shield-lock"></i> Toggle Immunity
                                     </button>
                                     <button class="btn btn-outline-danger btn-sm"
                                             disabled="@player.IsImmune"
-                                            @onclick="() => ConfirmBan(player)"
+                                            @onclick="() => ConfirmBanAsync(player)"
                                             title="Ban Player">
                                         <i class="bi bi-hammer"></i> Ban
                                     </button>
@@ -75,30 +75,30 @@
 
     protected override void OnInitialized()
     {
-        PlayerTracker.OnTrackedPlayersUpdate += Update;
+        PlayerTracker.OnTrackedPlayersUpdate += UpdateAsync;
         _activePlayers = PlayerTracker.GetAllActivePlayers();
     }
 
-    private async Task ConfirmBan(ActivePlayer player)
+    private async Task ConfirmBanAsync(ActivePlayer player)
     {
         await BanManager.AddBanAsync(player.SteamId, player.Name ?? "unnamed");
 
         Logger.LogInformation("{Player} has been banned from the dashboard.", player.Name ?? "unnamed");
     }
 
-    private async Task SetPlayerImmunity(ActivePlayer player, bool isImmune)
+    private async Task SetPlayerImmunityAsync(ActivePlayer player, bool isImmune)
     {
         await PlayerTracker.SetPlayerImmunityAsync(player.SteamId, isImmune);
         Logger.LogInformation("{Player} immunity set to {Immunity}.", player.Name ?? "unnamed", isImmune);
     }
 
-    private async void Update()
+    private async void UpdateAsync()
     {
         await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
-        PlayerTracker.OnTrackedPlayersUpdate -= Update;
+        PlayerTracker.OnTrackedPlayersUpdate -= UpdateAsync;
     }
 }

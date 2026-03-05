@@ -1,10 +1,11 @@
 ﻿using CoreRCON.Parsers.Standard;
 
-namespace Data.Listener;
+namespace Data.Service.Listener;
 
 public interface IListenerService
 {
     public Task StartServiceAsync();
+    public (string ip, int port)? GetListenerEndpoint();
 
     public event EventHandler<ChatMessage>? OnChatMessageReceived;
     public event EventHandler<PlayerConnected>? OnPlayerConnected;

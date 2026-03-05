@@ -14,12 +14,12 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Ban Management</h2>
         <div>
-            <button class="btn btn-outline-primary btn-sm me-2" @onclick="ExportBans">
+            <button class="btn btn-outline-primary btn-sm me-2" @onclick="ExportBansAsync">
                 <i class="bi bi-download"></i> Export Bans
             </button>
             <label class="btn btn-outline-warning btn-sm me-2 mb-0">
                 <i class="bi bi-upload"></i> Import Bans
-                <InputFile OnChange="ImportBans" style="display: none;" />
+                <InputFile OnChange="ImportBansAsync" style="display: none;" />
             </label>
             <a href="/" class="btn btn-secondary btn-sm">Back to Dashboard</a>
         </div>
@@ -63,7 +63,7 @@
                                 <td><code>@player.SteamId</code></td>
                                 <td class="text-end">
                                     <button class="btn btn-success btn-sm"
-                                            @onclick="() => HandleUnban(player.SteamId)"
+                                            @onclick="() => HandleUnbanAsync(player.SteamId)"
                                             title="Unban Player">
                                         <i class="bi bi-unlock-fill"></i> Unban
                                     </button>
@@ -91,31 +91,31 @@
 
     protected override async Task OnInitializedAsync()
     {
-        BanManager.OnBansUpdated += RefreshList;
-        await LoadData();
+        BanManager.OnBansUpdated += RefreshListAsync;
+        await LoadDataAsync();
     }
 
-    private async Task LoadData()
+    private async Task LoadDataAsync()
     {
         BannedPlayers = await BanManager.GetBannedPlayersAsync();
     }
 
-    private async void RefreshList()
+    private async void RefreshListAsync()
     {
         await InvokeAsync(async () =>
         {
-            await LoadData();
+            await LoadDataAsync();
             StateHasChanged();
         });
     }
 
-    private async Task HandleUnban(string steamId)
+    private async Task HandleUnbanAsync(string steamId)
     {
         await BanManager.RemoveBanAsync(steamId);
         Logger.LogInformation("Manual unban triggered for {SteamId}", steamId);
     }
 
-    private async Task ExportBans()
+    private async Task ExportBansAsync()
     {
         if (BannedPlayers is null || !BannedPlayers.Any()) return;
 
@@ -125,7 +125,7 @@
         await JS.InvokeVoidAsync("downloadFile", fileName, "application/json", json);
     }
 
-    private async Task ImportBans(InputFileChangeEventArgs e)
+    private async Task ImportBansAsync(InputFileChangeEventArgs e)
     {
         try
         {
@@ -153,6 +153,6 @@
 
     public void Dispose()
     {
-        BanManager.OnBansUpdated -= RefreshList;
+        BanManager.OnBansUpdated -= RefreshListAsync;
     }
 }

@@ -1,13 +1,15 @@
 using Data;
 using Data.Bans;
-using Data.Listener;
 using Data.RconClient;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ListenServerBanTool;
 using ListenServerBanTool.Components;
 using Data.PlayerTracker;
+using Data.Service.Listener;
+using Data.Model.Settings;
+using Data.Services.GameLauncher;
+using Data.Services.BrowserLauncher;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,12 +19,40 @@ var dbPath = Path.Combine(baseDir, "data", "bans.db");
 builder.Services.AddDbContext<BanContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 
+builder.Services.Configure<RconSettings>(
+    builder.Configuration.GetSection("RconSettings"));
+
 builder.Services.AddSingleton<IPlayerTracker, PlayerTracker>();
 builder.Services.AddSingleton<IRconClient, RconClient>();
 builder.Services.AddSingleton<IListenerService, ListenerService>();
 builder.Services.AddSingleton<IBanManager, BanManager>();
-builder.Services.AddHostedService<ListenWorker>();
 
+if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+{
+    builder.Services.AddSingleton<IGameLauncherService, WindowsGameLauncher>();
+}
+else
+{
+    builder.Services.AddSingleton<IGameLauncherService, UnsuppotedPlatformGameLauncher>();
+}
+
+if (!builder.Environment.IsDevelopment())
+{
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+        builder.Services.AddSingleton<IBrowserLauncherService, WindowsBrowserLauncher>();
+    }
+    else
+    {
+        builder.Services.AddSingleton<IBrowserLauncherService, UnsupportedPlatformBrowserLauncher>();
+    }
+}
+else
+{
+    builder.Services.AddSingleton<IBrowserLauncherService, UnsupportedPlatformBrowserLauncher>();
+}
+
+builder.Services.AddHostedService<StartWorker>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -53,24 +83,5 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-if (!app.Environment.IsDevelopment())
-{
-    app.Lifetime.ApplicationStarted.Register(() =>
-    {
-        var address = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
-        try
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Process.Start(new ProcessStartInfo(address) { UseShellExecute = true });
-            }
-        }
-        catch
-        {
-
-        }
-    });
-}
 
 await app.RunAsync();
