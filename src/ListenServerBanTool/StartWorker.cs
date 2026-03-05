@@ -22,7 +22,7 @@ public sealed class StartWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (_rconClient.CheckIfPasswordWasChanged())
+        if (!_rconClient.CheckIfPasswordWasChanged())
         {
             return;
         }

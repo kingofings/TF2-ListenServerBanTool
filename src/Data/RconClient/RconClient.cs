@@ -24,9 +24,9 @@ public sealed class RconClient : IRconClient
         if (_settings.Password == "changeme")
         {
             _logger.LogError("RCON password is still set to the default value. Please change it to a secure password in 'appsettings.json' in the 'RconSettings' section and restart the application.");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     public async Task KickPlayerAsync(int userId)
