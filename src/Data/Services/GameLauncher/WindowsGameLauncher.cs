@@ -1,5 +1,5 @@
 ﻿using Data.RconClient;
-using Data.Service.Listener;
+using Data.Services.Listener;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using System.Diagnostics;

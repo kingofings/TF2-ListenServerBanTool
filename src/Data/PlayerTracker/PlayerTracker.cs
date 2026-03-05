@@ -1,6 +1,6 @@
 ﻿using CoreRCON.Parsers.Standard;
 using Data.Model;
-using Data.Service.Listener;
+using Data.Services.Listener;
 
 namespace Data.PlayerTracker;
 

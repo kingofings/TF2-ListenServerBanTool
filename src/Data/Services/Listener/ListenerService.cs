@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Data.Service.Listener;
+namespace Data.Services.Listener;
 
 public sealed class ListenerService : IListenerService, IDisposable
 {

@@ -1,6 +1,6 @@
 ﻿using CoreRCON.Parsers.Standard;
 
-namespace Data.Service.Listener;
+namespace Data.Services.Listener;
 
 public interface IListenerService
 {
